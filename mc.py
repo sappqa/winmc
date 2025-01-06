@@ -2,10 +2,17 @@ import sys
 import subprocess
 
 WINDDCUTIL = "C:/executables/winddcutil/winddcutil.exe"
-MY_PC_HOSTNAME = "your_pc's_hostname_goes_here"
-MY_LAPTOP_HOSTNAME_1 = "your_laptop's_hostname_goes_here"
 VCP_CODE_BRIGHTNESS = "16"
-VCP_CODE_INPUT_SOURCE = 96
+VCP_CODE_INPUT_SOURCE = "96"
+INPUT_SOURCE_DISPLAY_PORT = "15"
+INPUT_SOURCE_HDMI_1 = "17"
+INPUT_SOURCE_HDMI_2 = "18"
+
+MY_PC_HOSTNAME = "your_pc's_hostname_goes_here" 
+MY_PC_DISPLAY_INPUT_SOURCE = INPUT_SOURCE_DISPLAY_PORT
+MY_LAPTOP_HOSTNAME = "your_laptop's_hostname_goes_here"
+MY_LAPTOP_DISPLAY_INPUT_SOURCE = INPUT_SOURCE_HDMI_1
+
 USAGE_EXAMPLES = ["mc -s", "mc --switch", "mc switch", "mc -b <value> (0 ≤ value ≤ 100)"]
 SWITCH_USAGE = ["-s", "--switch", "switch"]
 BRIGHTNESS_USAGE = ["-b", "--brightness"]
@@ -51,7 +58,7 @@ def verify_device():
     hostname = subprocess.run(["hostname"], capture_output=True, text=True).stdout.removesuffix('\n')
     if (hostname == MY_PC_HOSTNAME):
         return hostname
-    elif (hostname == MY_LAPTOP_HOSTNAME_1):
+    elif (hostname == MY_LAPTOP_HOSTNAME):
         return hostname
     else:
         raise ValueError(f"error: unauthorized device '{hostname}'")
@@ -70,18 +77,20 @@ def verify_monitors():
 
 def switch_monitor_inputs(hostname, monitors):
     # available input sources can be obtained from the 'capabilities' command ex: 60(11 12 0F)
-    # are those values standardized? also may need to add instructions on how to make sense of those numbers
-    # need to gracefully handle edge case where there isnt any other monitor input... should just do nothing or maybe print a message
+    # 0x0F - display port
+    # 0x11 - hdmi 1
+    # 0x12 - hdmi 2
+    # see reference, page 81: https://milek7.pl/ddcbacklight/mccs.pdf
     if (hostname == MY_PC_HOSTNAME):
         print("attempting to switch monitor inputs from pc to laptop...")
         for monitor in monitors:
-            res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_INPUT_SOURCE, 15], capture_output=True, text=True)
+            res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_INPUT_SOURCE, MY_LAPTOP_DISPLAY_INPUT_SOURCE], capture_output=True, text=True)
             if (res.stderr == ""):
-                print("successfully set brightness for monitor 1")
+                print(f"successfully set input for monitor {monitor}")
             else:
-                print(f"failed to set monitor 1 brightness:\n{res.stderr}")
+                print(f"failed to set monitor {monitor} input:\n{res.stderr}")
 
-    elif (hostname == MY_LAPTOP_HOSTNAME_1):
+    elif (hostname == MY_LAPTOP_HOSTNAME):
         print("attempting to switch monitor inputs from laptop to pc...")
         print("sending signal to pc...")
     print("successfully switched monitor inputs")
