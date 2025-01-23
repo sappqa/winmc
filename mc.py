@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import client
 
 WINDDCUTIL = "C:/executables/winddcutil/winddcutil.exe"
 VCP_CODE_BRIGHTNESS = "16"
@@ -16,6 +17,7 @@ MY_LAPTOP_DISPLAY_INPUT_SOURCE = INPUT_SOURCE_HDMI_1
 USAGE_EXAMPLES = ["mc -s", "mc --switch", "mc switch", "mc -b <value> (0 ≤ value ≤ 100)"]
 SWITCH_USAGE = ["-s", "--switch", "switch"]
 BRIGHTNESS_USAGE = ["-b", "--brightness"]
+HELP_USAGE = ["-b", "--brightness"]
 
 class UsageError(Exception):
     pass
@@ -92,8 +94,13 @@ def switch_monitor_inputs(hostname, monitors):
 
     elif (hostname == MY_LAPTOP_HOSTNAME):
         print("attempting to switch monitor inputs from laptop to pc...")
-        print("sending signal to pc...")
-    print("successfully switched monitor inputs")
+        if client.send_request():
+            for monitor in monitors:
+                res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_INPUT_SOURCE, MY_PC_DISPLAY_INPUT_SOURCE], capture_output=True, text=True)
+                if (res.stderr == ""):
+                    print(f"successfully set input for monitor {monitor}")
+                else:
+                    print(f"failed to set monitor {monitor} input:\n{res.stderr}")
 
 def adjust_monitor_brightness(monitors):
     brightness = sys.argv[2]

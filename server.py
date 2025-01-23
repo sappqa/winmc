@@ -3,6 +3,7 @@ import select
 import threading
 import traceback
 import signal
+import os
 
 HOST = "localhost" # replace this with your pc's ip address. you can get this using the `ipconfig` command
 PORT = 65432 # this is the port you will open for listening on your pc. use any port in the dynamic port range 49152 to 65535
@@ -42,8 +43,19 @@ def server_thread():
                     if isinstance(s, socket.socket):
                         data = s.recv(1024)
                         if data:
-                            print(f"received data: {data!r} from client {s.getsockname()}\n")
-                            s.sendall(data)
+                            if data == b"switch":
+                                print(f"received input switch request: {data!r} from client {s.getsockname()}")
+                                s.sendall(data)
+                                print("response sent\n")
+                            elif data == b"qs":
+                                print(f"received pid query request: {data!r} from client {s.getsockname()}")
+                                s.sendall(str(os.getppid()).encode())
+                                print("response sent\n")
+                            elif data == b"ks":
+                                print(f"received kill request: {data!r} from client {s.getsockname()}")
+                                print("exiting...")
+                                active = False
+                                break
                         else:
                             print(f"client disconnected")
                             client_socket.close()
