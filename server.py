@@ -43,16 +43,17 @@ def server_thread():
                     if isinstance(s, socket.socket):
                         data = s.recv(1024)
                         if data:
-                            if data == b"switch":
+                            if data == b"-s":
                                 print(f"received input switch request: {data!r} from client {s.getsockname()}")
                                 s.sendall(data)
                                 print("response sent\n")
-                            elif data == b"qs":
+                            elif data == b"-qs":
                                 print(f"received pid query request: {data!r} from client {s.getsockname()}")
                                 s.sendall(str(os.getppid()).encode())
                                 print("response sent\n")
-                            elif data == b"ks":
+                            elif data == b"-ks":
                                 print(f"received kill request: {data!r} from client {s.getsockname()}")
+                                s.sendall(data)
                                 print("exiting...")
                                 active = False
                                 break
