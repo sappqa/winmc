@@ -15,7 +15,6 @@ MY_PC_HOSTNAME = "your_pc's_hostname_goes_here"
 MY_PC_DISPLAY_INPUT_SOURCE = INPUT_SOURCE_DISPLAY_PORT
 MY_LAPTOP_HOSTNAME = "your_laptop's_hostname_goes_here"
 MY_LAPTOP_DISPLAY_INPUT_SOURCE = INPUT_SOURCE_HDMI_1
-APPROVED_DEVICES = [MY_PC_HOSTNAME, MY_LAPTOP_HOSTNAME]
 
 USAGE_EXAMPLES = ["mc -h", "mc -s", "mc --switch", "mc switch", "mc -b <value> (0 ≤ value ≤ 100)"]
 
@@ -91,12 +90,8 @@ def verify_usage():
         raise UsageError()
         
 
-def verify_device():
-    hostname = subprocess.run(["hostname"], capture_output=True, text=True).stdout.removesuffix('\n')
-    if hostname not in APPROVED_DEVICES:
-        raise ValueError(f"error: unauthorized device '{hostname}'")
-    print(f"hostname '{hostname}' approved. continuing...")
-    return hostname
+def get_device_hostname():
+    return subprocess.run(["hostname"], capture_output=True, text=True).stdout.removesuffix('\n')
     
 def verify_monitors():
     res = subprocess.run([WINDDCUTIL, "detect"], capture_output=True, text=True)
@@ -140,38 +135,35 @@ def adjust_monitor_brightness(monitors, brightness):
     for monitor in monitors:
         res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_BRIGHTNESS, brightness], capture_output=True, text=True)
         if (res.stderr == ""):
-            print("successfully set brightness for monitor 1")
+            print(f"successfully set brightness for monitor {monitor}")
         else:
-            print(f"failed to set monitor 1 brightness:\n{res.stderr}")
+            print(f"failed to set monitor {monitor} brightness:\n{res.stderr}")
 
 def start_server():
-    try:
-        proc = subprocess.Popen([SERVER_EXECUTABLE_PATH], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+    data = client.send_request(QUERY_SERVER_USAGE[0], suppress=True)
+    if data is None:
+        subprocess.Popen([SERVER_EXECUTABLE_PATH], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
         print("successfully started server")
-    except:
-        print("failed to start server")
-
-
+    else:
+        print("server already running")
+        
 def exec():
     argc = len(sys.argv)
     monitors = verify_monitors()
     if (sys.argv[1] in HELP_USAGE):
         print_usage()
     elif (sys.argv[1] in SWITCH_USAGE):
-        hostname = verify_device()
+        hostname = get_device_hostname()
         switch_monitor_inputs(hostname, monitors)
     elif (sys.argv[1] in BRIGHTNESS_USAGE):
         adjust_monitor_brightness(monitors, sys.argv[2])
     elif (sys.argv[1] in QUERY_SERVER_USAGE):
-        hostname = verify_device()
         data = client.send_request(QUERY_SERVER_USAGE[0])
         if data is not None:
             print(f"query successful, server pid: {str(data.decode())}")
     elif (sys.argv[1] in START_SERVER_USAGE):
-        hostname = verify_device()
         start_server()
     elif (sys.argv[1] in KILL_SERVER_USAGE):
-        hostname = verify_device()
         data = client.send_request(KILL_SERVER_USAGE[0])
         if data is not None:
             print("server terminated")
