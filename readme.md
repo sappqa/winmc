@@ -9,14 +9,14 @@ user setup instructions
 - create inbound rule in windows defender firewall on your server device to allow listening on your desired port you've configured in the server program. optionally, restrict access to only ip addresses of recognized devices on your lan
 
 on the client machine
-- install python
+- install python 3.12
 - mkdir c:/executables/winddcutil
 - download winddcutil into that directory. get it from here: https://github.com/rtrbt/winddcutil/tags
-- add alias mc='C:\\dev\\repos\\winmc\\winmc.py' to your .bashrc
+- add alias mc='python C:\\dev\\repos\\winmc\\winmc.py' to your .bashrc
 - clone the repo
 - install packages
     ```
-    python -m venv venv
+    python -m venv .venv
     source .venv/scripts/activate
     pip install -r requirements.txt
     ```
