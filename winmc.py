@@ -2,6 +2,7 @@ import sys
 import subprocess
 import client
 import traceback
+import os
 
 WINDDCUTIL = "C:/executables/winddcutil/winddcutil.exe"
 SERVER_EXECUTABLE_PATH = "C:/executables/winmc/winmc-server.exe"
@@ -62,23 +63,23 @@ def get_usage_error_message():
 
 def verify_switch_usage(usage):
     for ustr in SWITCH_USAGE:
-        if (usage == ustr):
+        if usage == ustr:
             return
     raise UsageError()
 
 def verify_brightness_usage(argv1, argv2):
     flag_verified = False
     for ustr in BRIGHTNESS_USAGE:
-        if (argv1 == ustr):
+        if argv1 == ustr:
             flag_verified = True
-    if (flag_verified):
-        if (int(argv2) >= 0 and int(argv2) <= 100):
+    if flag_verified:
+        if int(argv2) >= 0 and int(argv2) <= 100:
             return
     raise UsageError()
 
 def verify_usage():
     argc = len(sys.argv)
-    if (argc < 2 or argc > 3):
+    if argc < 2 or argc > 3:
         raise UsageError()
     
     if sys.argv[1] in USAGES_FLATTENED:
@@ -95,10 +96,10 @@ def get_device_hostname():
     
 def verify_monitors():
     res = subprocess.run([WINDDCUTIL, "detect"], capture_output=True, text=True)
-    if (res.stderr != ""):
+    if res.stderr != "":
         raise WinddcutilError(res.stderr)
     substrs = res.stdout.split('\n')
-    if (substrs[-1] == ''):
+    if substrs[-1] == '':
         substrs.pop()
     monitors = []
     for s in substrs:
@@ -112,58 +113,62 @@ def switch_monitor_inputs(hostname, monitors):
     # 0x11 - hdmi 1
     # 0x12 - hdmi 2
     # see reference, page 81: https://milek7.pl/ddcbacklight/mccs.pdf
-    if (hostname == MY_PC_HOSTNAME):
+    if hostname == MY_PC_HOSTNAME:
         print("attempting to switch monitor inputs from pc to laptop...")
         for monitor in monitors:
             res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_INPUT_SOURCE, MY_LAPTOP_DISPLAY_INPUT_SOURCE], capture_output=True, text=True)
-            if (res.stderr == ""):
+            if res.stderr == "":
                 print(f"successfully set input for monitor {monitor}")
             else:
                 print(f"failed to set monitor {monitor} input:\n{res.stderr}")
-
-    elif (hostname == MY_LAPTOP_HOSTNAME):
+    elif hostname == MY_LAPTOP_HOSTNAME:
         print("attempting to switch monitor inputs from laptop to pc...")
         if client.send_request(SWITCH_USAGE[0]):
             for monitor in monitors:
                 res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_INPUT_SOURCE, MY_PC_DISPLAY_INPUT_SOURCE], capture_output=True, text=True)
-                if (res.stderr == ""):
+                if res.stderr == "":
                     print(f"successfully set input for monitor {monitor}")
                 else:
                     print(f"failed to set monitor {monitor} input:\n{res.stderr}")
+    else:
+        print(f"unknown device hostname: {hostname}")
 
 def adjust_monitor_brightness(monitors, brightness):
     for monitor in monitors:
         res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_BRIGHTNESS, brightness], capture_output=True, text=True)
-        if (res.stderr == ""):
+        if res.stderr == "":
             print(f"successfully set brightness for monitor {monitor}")
         else:
             print(f"failed to set monitor {monitor} brightness:\n{res.stderr}")
 
 def start_server():
-    data = client.send_request(QUERY_SERVER_USAGE[0], suppress=True)
-    if data is None:
-        subprocess.Popen([SERVER_EXECUTABLE_PATH], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
-        print("successfully started server")
+    if os.path.exists(SERVER_EXECUTABLE_PATH):
+        data = client.send_request(QUERY_SERVER_USAGE[0], suppress=True)
+        if data is None:
+            subprocess.Popen([SERVER_EXECUTABLE_PATH], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+            print("successfully started server")
+        else:
+            print("server already running")
     else:
-        print("server already running")
+        print("unable to start server, executable not found")
         
 def exec():
     argc = len(sys.argv)
     monitors = verify_monitors()
-    if (sys.argv[1] in HELP_USAGE):
+    if sys.argv[1] in HELP_USAGE:
         print_usage()
-    elif (sys.argv[1] in SWITCH_USAGE):
+    elif sys.argv[1] in SWITCH_USAGE:
         hostname = get_device_hostname()
         switch_monitor_inputs(hostname, monitors)
-    elif (sys.argv[1] in BRIGHTNESS_USAGE):
+    elif sys.argv[1] in BRIGHTNESS_USAGE:
         adjust_monitor_brightness(monitors, sys.argv[2])
-    elif (sys.argv[1] in QUERY_SERVER_USAGE):
+    elif sys.argv[1] in QUERY_SERVER_USAGE:
         data = client.send_request(QUERY_SERVER_USAGE[0])
         if data is not None:
             print(f"query successful, server pid: {str(data.decode())}")
-    elif (sys.argv[1] in START_SERVER_USAGE):
+    elif sys.argv[1] in START_SERVER_USAGE:
         start_server()
-    elif (sys.argv[1] in KILL_SERVER_USAGE):
+    elif sys.argv[1] in KILL_SERVER_USAGE:
         data = client.send_request(KILL_SERVER_USAGE[0])
         if data is not None:
             print("server terminated")
@@ -179,7 +184,7 @@ except WinddcutilError as wde:
     print(str(wde))
     traceback.print_exc()
 except ValueError as ve:
-    if ("invalid literal for int()" in str(ve)):
+    if "invalid literal for int()" in str(ve):
         print(get_usage_error_message())
     else:
         print(ve)
