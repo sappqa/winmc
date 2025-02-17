@@ -4,10 +4,8 @@ import threading
 import traceback
 import signal
 import os
+from config import *
 
-HOST = "localhost" # replace this with your pc's ip address. you can get this using the `ipconfig` command
-PORT = 65432 # this is the port you will open for listening on your pc. use any port in the dynamic port range 49152 to 65535
-TIMEOUT = 4.0
 interrupt_receive, interrupt_send = socket.socketpair()
 interrupt_receive.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 interrupt_send.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

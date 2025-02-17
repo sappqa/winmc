@@ -1,9 +1,6 @@
 import socket
 import traceback
-
-HOST = "localhost" # replace this with your pc's ip address
-PORT = 65432 # match this with `PORT` in `receiver.py`
-TIMEOUT = 4
+from config import *
 
 def clean(client_socket):
     if client_socket is not None:

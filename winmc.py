@@ -3,22 +3,9 @@ import subprocess
 import client
 import traceback
 import os
-
-WINDDCUTIL = "C:/executables/winddcutil/winddcutil.exe"
-SERVER_EXECUTABLE_PATH = "C:/executables/winmc/winmc-server.exe"
-VCP_CODE_BRIGHTNESS = "16"
-VCP_CODE_INPUT_SOURCE = "96"
-INPUT_SOURCE_DISPLAY_PORT = "15"
-INPUT_SOURCE_HDMI_1 = "17"
-INPUT_SOURCE_HDMI_2 = "18"
-
-MY_PC_HOSTNAME = "your_pc's_hostname_goes_here" 
-MY_PC_DISPLAY_INPUT_SOURCE = INPUT_SOURCE_DISPLAY_PORT
-MY_LAPTOP_HOSTNAME = "your_laptop's_hostname_goes_here"
-MY_LAPTOP_DISPLAY_INPUT_SOURCE = INPUT_SOURCE_HDMI_1
+from config import *
 
 USAGE_EXAMPLES = ["mc -h", "mc -s", "mc --switch", "mc switch", "mc -b <value> (0 ≤ value ≤ 100)"]
-
 HELP_USAGE = ["-h", "--help"]
 HELP_USAGE_DESCRIPTION = "outputs usage information"
 SWITCH_USAGE = ["-s", "--switch", "switch"]
