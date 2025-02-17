@@ -81,7 +81,7 @@ def verify_usage():
 def get_device_hostname():
     return subprocess.run(["hostname"], capture_output=True, text=True).stdout.removesuffix('\n')
     
-def verify_monitors():
+def get_monitors():
     res = subprocess.run([WINDDCUTIL, "detect"], capture_output=True, text=True)
     if res.stderr != "":
         raise WinddcutilError(res.stderr)
@@ -93,6 +93,10 @@ def verify_monitors():
         monitors.append(s.split(' ')[0])
     return monitors
 
+def issue_command_to_monitors(monitors, command):
+    for monitor in monitors:
+        command[2] = monitor
+        res = subprocess.run(command, capture_output=True, text=True)
 
 def switch_monitor_inputs(hostname, monitors):
     # available input sources can be obtained from the 'capabilities' command ex: 60(11 12 0F)
@@ -102,31 +106,19 @@ def switch_monitor_inputs(hostname, monitors):
     # see reference, page 81: https://milek7.pl/ddcbacklight/mccs.pdf
     if hostname == MY_PC_HOSTNAME:
         print("attempting to switch monitor inputs from pc to laptop...")
-        for monitor in monitors:
-            res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_INPUT_SOURCE, MY_LAPTOP_DISPLAY_INPUT_SOURCE], capture_output=True, text=True)
-            if res.stderr == "":
-                print(f"successfully set input for monitor {monitor}")
-            else:
-                print(f"failed to set monitor {monitor} input:\n{res.stderr}")
+        issue_command_to_monitors(monitors, [WINDDCUTIL, "setvcp", "", VCP_CODE_INPUT_SOURCE, MY_LAPTOP_DISPLAY_INPUT_SOURCE])
     elif hostname == MY_LAPTOP_HOSTNAME:
-        print("attempting to switch monitor inputs from laptop to pc...")
-        if client.send_request(SWITCH_USAGE[0]):
-            for monitor in monitors:
-                res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_INPUT_SOURCE, MY_PC_DISPLAY_INPUT_SOURCE], capture_output=True, text=True)
-                if res.stderr == "":
-                    print(f"successfully set input for monitor {monitor}")
-                else:
-                    print(f"failed to set monitor {monitor} input:\n{res.stderr}")
+        client.send_request(SWITCH_USAGE[0])
     else:
         print(f"unknown device hostname: {hostname}")
 
-def adjust_monitor_brightness(monitors, brightness):
-    for monitor in monitors:
-        res = subprocess.run([WINDDCUTIL, "setvcp", monitor, VCP_CODE_BRIGHTNESS, brightness], capture_output=True, text=True)
-        if res.stderr == "":
-            print(f"successfully set brightness for monitor {monitor}")
-        else:
-            print(f"failed to set monitor {monitor} brightness:\n{res.stderr}")
+def adjust_monitor_brightness(hostname, monitors, brightness):
+    if hostname == MY_PC_HOSTNAME:
+        issue_command_to_monitors(monitors, [WINDDCUTIL, "setvcp", "", VCP_CODE_BRIGHTNESS, brightness])
+    elif hostname == MY_LAPTOP_HOSTNAME:
+        client.send_request(BRIGHTNESS_USAGE[0] + f" {brightness}")  
+    else:
+        print(f"unknown device hostname: {hostname}")  
 
 def start_server():
     if os.path.exists(SERVER_EXECUTABLE_PATH):
@@ -141,14 +133,14 @@ def start_server():
         
 def exec():
     argc = len(sys.argv)
-    monitors = verify_monitors()
+    monitors = get_monitors()
+    hostname = get_device_hostname()
     if sys.argv[1] in HELP_USAGE:
         print_usage()
     elif sys.argv[1] in SWITCH_USAGE:
-        hostname = get_device_hostname()
         switch_monitor_inputs(hostname, monitors)
     elif sys.argv[1] in BRIGHTNESS_USAGE:
-        adjust_monitor_brightness(monitors, sys.argv[2])
+        adjust_monitor_brightness(hostname, monitors, sys.argv[2])
     elif sys.argv[1] in QUERY_SERVER_USAGE:
         data = client.send_request(QUERY_SERVER_USAGE[0])
         if data is not None:

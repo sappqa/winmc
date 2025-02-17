@@ -4,7 +4,9 @@ import threading
 import traceback
 import signal
 import os
+import subprocess
 from config import *
+from winmc import get_monitors, issue_command_to_monitors
 
 interrupt_receive, interrupt_send = socket.socketpair()
 interrupt_receive.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -19,6 +21,7 @@ def server_thread():
         server_socket.listen()
         server_socket.setblocking(False)
         print("server is up and running!")
+        monitors = get_monitors()
         
         active = True
         client = None
@@ -40,9 +43,14 @@ def server_thread():
                 else:
                     if isinstance(s, socket.socket):
                         data = s.recv(1024)
-                        if data:
-                            if data == b"-s":
+                        if data:                            
+                            if data[:2] == b"-b":
+                                print(f"received brightness adjustment request: {data!r} from client {s.getsockname()}")
+                                brightness = int(data.decode().split(' ')[1])
+                                issue_command_to_monitors([WINDDCUTIL, "setvcp", "", VCP_CODE_BRIGHTNESS, brightness])
+                            elif data == b"-s":
                                 print(f"received input switch request: {data!r} from client {s.getsockname()}")
+                                issue_command_to_monitors([WINDDCUTIL, "setvcp", "", VCP_CODE_INPUT_SOURCE, MY_PC_DISPLAY_INPUT_SOURCE])
                                 s.sendall(data)
                                 print("response sent\n")
                             elif data == b"-qs":
