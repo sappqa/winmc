@@ -27,6 +27,7 @@ then, on the server machine
  - pyinstaller --onefile server.py --name winmc-server --icon winmc-icon.ico
 - mkdir c:/executables/winmc
 - move winmc-server.exe generated from pyinstaller to c:/executables/winmc
+ - mv dist/winmc-server.exe c:/executables/winmc/winmc-server.exe
 - set server executable as windows start-up application
 
 usage, available commands, examples
