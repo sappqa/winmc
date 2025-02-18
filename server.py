@@ -6,7 +6,7 @@ import signal
 import os
 import subprocess
 from config import *
-from winmc import get_monitors, issue_command_to_monitors
+from util import *
 
 interrupt_receive, interrupt_send = socket.socketpair()
 interrupt_receive.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

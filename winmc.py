@@ -4,6 +4,7 @@ import client
 import traceback
 import os
 from config import *
+from util import *
 
 USAGE_EXAMPLES = ["mc -h", "mc -s", "mc --switch", "mc switch", "mc -b <value> (0 ≤ value ≤ 100)"]
 HELP_USAGE = ["-h", "--help"]
@@ -26,10 +27,6 @@ USAGE_DESCRIPTIONS = [HELP_USAGE_DESCRIPTION, SWITCH_USAGE_DESCRIPTION, BRIGHTNE
 
 class UsageError(Exception):
     pass
-
-class WinddcutilError(Exception):
-    pass
-
 
 def get_usage_hint():
     hint = "usage: mc [option]\n\n"
@@ -81,22 +78,7 @@ def verify_usage():
 def get_device_hostname():
     return subprocess.run(["hostname"], capture_output=True, text=True).stdout.removesuffix('\n')
     
-def get_monitors():
-    res = subprocess.run([WINDDCUTIL, "detect"], capture_output=True, text=True)
-    if res.stderr != "":
-        raise WinddcutilError(res.stderr)
-    substrs = res.stdout.split('\n')
-    if substrs[-1] == '':
-        substrs.pop()
-    monitors = []
-    for s in substrs:
-        monitors.append(s.split(' ')[0])
-    return monitors
 
-def issue_command_to_monitors(monitors, command):
-    for monitor in monitors:
-        command[2] = monitor
-        res = subprocess.run(command, capture_output=True, text=True)
 
 def switch_monitor_inputs(hostname, monitors):
     # available input sources can be obtained from the 'capabilities' command ex: 60(11 12 0F)
