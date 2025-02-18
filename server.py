@@ -46,11 +46,13 @@ def server_thread():
                         if data:                            
                             if data[:2] == b"-b":
                                 print(f"received brightness adjustment request: {data!r} from client {s.getsockname()}")
-                                brightness = int(data.decode().split(' ')[1])
-                                issue_command_to_monitors([WINDDCUTIL, "setvcp", "", VCP_CODE_BRIGHTNESS, brightness])
+                                brightness = data.decode().split(' ')[1]
+                                issue_command_to_monitors(monitors, [WINDDCUTIL, "setvcp", "", VCP_CODE_BRIGHTNESS, brightness])
+                                s.sendall(data)
+                                print("response sent\n")
                             elif data == b"-s":
                                 print(f"received input switch request: {data!r} from client {s.getsockname()}")
-                                issue_command_to_monitors([WINDDCUTIL, "setvcp", "", VCP_CODE_INPUT_SOURCE, MY_PC_DISPLAY_INPUT_SOURCE])
+                                issue_command_to_monitors(monitors, [WINDDCUTIL, "setvcp", "", VCP_CODE_INPUT_SOURCE, MY_PC_DISPLAY_INPUT_SOURCE])
                                 s.sendall(data)
                                 print("response sent\n")
                             elif data == b"-qs":
